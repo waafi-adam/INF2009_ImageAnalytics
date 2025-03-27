@@ -44,6 +44,78 @@ In this lab, few basic and advanced image processing tasks on edge devices is in
   ![image](https://github.com/drfuzzi/INF2009_ImageAnalytics/assets/52023898/fd7c115d-0301-0d2-b2c1-7966dce3fec)
 - Expand the code to segment another colour (say yellow)
 
+```python
+import cv2
+import numpy as np
+
+# Define color boundaries in HSV space
+# HSV is better for color segmentation than RGB
+boundaries = {
+    "Red": ([0, 120, 70], [10, 255, 255]),       # Lower range of red
+    "Red2": ([170, 120, 70], [180, 255, 255]),   # Upper range of red
+    "Green": ([36, 25, 25], [86, 255, 255]),     # Green range
+    "Blue": ([94, 80, 2], [126, 255, 255]),      # Blue range
+    "Yellow": ([15, 150, 150], [35, 255, 255])   # Yellow range
+}
+
+# Normalize image for display (scales pixel values to 0-255)
+def normalizeImg(Img):
+    Img = np.float64(Img)
+    norm_img = (Img - np.min(Img)) / (np.max(Img) - np.min(Img))
+    norm_img = np.uint8(norm_img * 255.0)
+    return norm_img
+
+# Open webcam
+cap = cv2.VideoCapture(0)
+if not cap.isOpened():
+    raise IOError("Cannot open webcam")
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    # Convert frame to HSV color space
+    hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    
+    output = []
+
+    # Apply color masks and extract regions for each color
+    for color_name, (lower, upper) in boundaries.items():
+        lower_bound = np.array(lower, dtype="uint8")
+        upper_bound = np.array(upper, dtype="uint8")
+        
+        # Create mask for current color range
+        mask = cv2.inRange(hsv_frame, lower_bound, upper_bound)
+        
+        # Apply the mask to the original frame
+        segmented = cv2.bitwise_and(frame, frame, mask=mask)
+        
+        # Normalize segmented image and store it
+        output.append(normalizeImg(segmented))
+
+    # Combine both red ranges into one
+    red_combined = cv2.add(output[0], output[1])  # Red + Red2
+
+    green_img = output[2]
+    blue_img = output[3]
+    yellow_img = output[4]
+
+    # Concatenate original and processed images side by side
+    catImg = cv2.hconcat([frame, red_combined, green_img, blue_img, yellow_img])
+    
+    # Show the result
+    cv2.imshow("Original | Red | Green | Blue | Yellow", catImg)
+
+    # Exit when 'q' is pressed
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# Release resources
+cap.release()
+cv2.destroyAllWindows()
+```
+
 **5. Real-time Image Analysis (25 minutes)**
 - Installing scikit-image:
   ```bash
