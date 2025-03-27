@@ -126,6 +126,114 @@ cv2.destroyAllWindows()
   -  Note the usage of colour (RGB) to gray scale converion employed before HoG feature extraction.
   - Run the code with and without resizing the image and observe the resultant frame rate. It is important to note that for edge computing, downsizing the image will speed up the compute and many such informed decisions are critical.
   - Change the patch size in line 25 (feature.hog) and observe the changes in the results.
+
+# EXPLAIN START
+
+Based on the instructions shown in your image and the code you provided, here’s a breakdown of what **changes or experiments** you can try in the code to match the suggestions:
+
+---
+
+### ✅ **Instruction 1: RGB to grayscale**
+Already handled:
+```python
+image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+```
+✅ No change needed. This converts the color image to grayscale before applying HoG.
+
+---
+
+### ✅ **Instruction 2: Resize the image to test speed**
+To test how resizing improves performance, uncomment the following line:
+```python
+#frame = cv2.resize(frame, (256, 256))  # Uncomment and see the speed up
+```
+⬇️ Change to:
+```python
+frame = cv2.resize(frame, (256, 256))  # Resize to reduce processing time
+```
+📌 You can even test different sizes like `(128, 128)` or `(320, 240)` to see performance differences.
+
+---
+
+### ✅ **Instruction 3: Change the patch size (`pixels_per_cell`)**
+Locate this part:
+```python
+(H, hogImage) = feature.hog(image, orientations=9, pixels_per_cell=(8, 8),
+	cells_per_block=(2, 2), transform_sqrt=True, block_norm="L1",
+	visualize=True)
+```
+
+🔁 Try changing `pixels_per_cell=(8, 8)` to something like:
+```python
+pixels_per_cell=(16, 16)
+```
+or
+```python
+pixels_per_cell=(4, 4)
+```
+
+This affects the **patch size**, which changes the detail level in the HoG visualization.
+
+---
+
+### ✨ Example: Apply All Three Suggestions
+
+Here’s a version of your code with all instructions applied:
+
+```python
+import cv2
+import numpy as np
+from skimage import feature
+from skimage import exposure
+
+# OpenCV Video Capture
+cap = cv2.VideoCapture(0)
+
+if not cap.isOpened():
+    raise IOError("Cannot open webcam")
+
+while True:
+    try:
+        ret, frame = cap.read()
+
+        # ✅ Resize for faster processing
+        frame = cv2.resize(frame, (256, 256))
+
+        # ✅ Convert to grayscale for HoG
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # ✅ Change patch size for HoG feature extraction
+        (H, hogImage) = feature.hog(
+            image,
+            orientations=9,
+            pixels_per_cell=(16, 16),  # Try different values like (4, 4), (8, 8), etc.
+            cells_per_block=(2, 2),
+            transform_sqrt=True,
+            block_norm="L1",
+            visualize=True
+        )
+
+        hogImage = exposure.rescale_intensity(hogImage, out_range=(0, 255))
+        hogImage = hogImage.astype("uint8")
+        hogImg = cv2.cvtColor(hogImage, cv2.COLOR_GRAY2RGB)
+
+        catImg = cv2.hconcat([frame, hogImg])
+        cv2.imshow("HOG Image", catImg)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    except KeyboardInterrupt:
+        break
+
+cap.release()
+cv2.destroyAllWindows()
+```
+
+Let me know if you’d like sliders or a GUI to change patch size or resize live!
+
+# EXPLAIN END
+
 - The HoG features can be employed to identify the presence of face. An [example using OpenCV](Codes/image_human_capture.py) is available for experimenting with. A multiscale HoG feature extraction is employed in this case. This involves extracting HoG features at multiple scales (resolutions) of the given image. 
 
 **6. Real-time Image Feature Analysis for Face Capture and Facial Landmark Extraction (20 minutes)**
